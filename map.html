@@ -1,0 +1,119 @@
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+	<style type="text/css">
+		body, html,#allmap {width: 100%;height: 100%;overflow: hidden;margin:0;font-family:"微软雅黑";}
+	</style>
+	<script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=OxLYdFmu3YS1haMUcaBmGMBK0P7PbOqb"></script>
+	<script type="text/javascript" src="jquery-1.9.1.min.js"></script>
+	<title>IP定位获取当前城市</title>
+</head>
+<body>
+	<div>
+		<input type="text" id="ipAddress"/>
+	</div>
+	<div id="allmap"></div>
+</body>                                                                                                   
+</html>
+<script type="text/javascript">
+	// 百度地图API功能
+	var map = new BMap.Map("allmap");
+	// var point = new BMap.Point(116.331398,39.897445);
+	// map.centerAndZoom(point,12);
+
+	map.addControl(new BMap.NavigationControl());               // 添加平移缩放控件
+	map.addControl(new BMap.ScaleControl());                    // 添加比例尺控件
+	map.addControl(new BMap.OverviewMapControl());              //添加缩略地图控件
+	map.enableScrollWheelZoom();                            //启用滚轮放大缩小
+	map.addControl(new BMap.MapTypeControl());          //添加地图类型控件
+	map.setMapStyle({style:'midnight'});
+
+
+	function http(url,method,dataObj){
+		var formdata = JSON.stringify(dataObj);
+		//异步操作
+		var defer = $.Deferred();   
+		//发送
+		$.ajax({
+			url : url,
+			type : method,
+			data : formdata,
+			contentType:'application/json; charset=utf-8',
+			success : function(data){
+					defer.resolve(data);//执行状态从"未完成"改为"已完成"
+			},
+			error : function(data){
+			  	defer.reject(data);
+			}
+		});
+		return defer.promise();
+	}
+
+	
+	//根据ip数组获取位置数组
+	var arr = ['112.18.17.7','112.118.17.7'];
+	var locationArr = [];
+
+	getLocate();
+
+	function getLocate(){	
+		http('http://127.0.0.1:8081/map','post',arr).then(function(data){
+			for (var i = 0; i < data.length; i++) {
+				var temp = JSON.parse(data[i]);
+				var obj = {
+					'ip': arr[i],
+					'x': temp.content.point.x,
+					'y': temp.content.point.y,
+				}
+				locationArr.push(obj);
+			}	
+			//添加标注
+			addMarker();
+		});
+		
+	}
+
+	//根据ip获取位置
+	// function getLocate(){	
+	// 	http('http://127.0.0.1:8081/map','post',{'ip':'112.13.41.2'}).then(function(data){
+	// 		console.log(data);
+	// 		var obj = {
+	// 			'ip': '115.3.4.2',
+	// 			'x': data.content.point.x,
+	// 			'y': data.content.point.y,
+	// 		};	
+	// 		//添加标注
+	// 		addMarker(obj);
+	// 	});
+	// }
+
+
+	// 创建多个标注
+	function addMarker(){
+		for (var i = 0; i < locationArr.length; i ++) {
+			var temp = locationArr[i];
+			var point = new BMap.Point(temp.x, temp.y);
+			map.centerAndZoom(point,8);
+			var marker = new BMap.Marker(point);
+	  		map.addOverlay(marker);
+	  		var label = new BMap.Label(temp.ip,{offset:new BMap.Size(20,-10)});
+			marker.setLabel(label);
+		}
+	  
+	}	
+
+	//创建一个标注
+	// function addMarker(temp){
+	// 		console.log(temp.x);
+	// 		var point = new BMap.Point(temp.x, temp.y);
+	// 		map.centerAndZoom(point,12);
+	// 		var marker = new BMap.Marker(point);
+	//   		map.addOverlay(marker);
+	//   		var label = new BMap.Label(temp.ip,{offset:new BMap.Size(20,-10)});
+	// 		marker.setLabel(label);
+	  
+	// }	
+
+</script>
+
